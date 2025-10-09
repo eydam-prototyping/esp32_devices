@@ -20,8 +20,7 @@ void app_main(void)
     printf("Hello world!\n");
 
     run_network_manager();
-
-    xTaskCreate(http_server_task, "http_server_task", 4096, get_wifi_event_group(), 5, NULL);
+    run_http_server(get_wifi_event_group());
 
     /* Print chip information */
     esp_chip_info_t chip_info;

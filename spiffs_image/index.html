@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Device Manager</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>ESP32 Device Manager</h1>
+        <div class="status">
+            <h2>WiFi Status</h2>
+            <div id="wifi-status">Loading...</div>
+        </div>
+        
+        <div class="controls">
+            <h2>Device Controls</h2>
+            <button onclick="toggleLed()">Toggle LED</button>
+            <button onclick="restart()">Restart Device</button>
+        </div>
+        
+        <div class="info">
+            <h2>Device Information</h2>
+            <div id="device-info">Loading...</div>
+        </div>
+    </div>
+    
+    <script src="/script.js"></script>
+</body>
+</html>

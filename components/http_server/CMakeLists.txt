@@ -1,6 +1,6 @@
 idf_component_register(
-    SRCS "http_handlers.c" "http_server.c"
+    SRCS "http_handlers.c" "http_server.c" "spiffs.c"
     INCLUDE_DIRS "include"
-    REQUIRES esp_http_server network_manager
+    REQUIRES esp_http_server network_manager spiffs nvs_flash
     PRIV_REQUIRES vfs
 )
