@@ -1,16 +1,18 @@
 #include "network_manager.h"
 
 static const char *TAG = "network_manager";
+static EventGroupHandle_t s_wifi_event_group;
 
-#define EXAMPLE_ESP_WIFI_AP_SSID            "ESP32_AP"
-#define EXAMPLE_ESP_WIFI_AP_PASSWD          "esp32testpassword"
-#define EXAMPLE_ESP_WIFI_CHANNEL            1
-#define EXAMPLE_MAX_STA_CONN                5
+#define DEFAULT_WIFI_AP_SSID            "ESP32_AP"
+#define DEFAULT_WIFI_AP_PASSWD          "esp32testpassword"
+#define DEFAULT_ESP_WIFI_CHANNEL            1
+#define DEFAULT_MAX_STA_CONN                5
 
-static void wifi_event_handler(void *arg, esp_event_base_t event_base,
+static void network_event_handler(void *arg, esp_event_base_t event_base,
                                int32_t event_id, void *event_data);
 
 void run_network_manager(void);
+
 
 esp_netif_t *wifi_init_softap(void)
 {
@@ -18,11 +20,11 @@ esp_netif_t *wifi_init_softap(void)
 
     wifi_config_t wifi_ap_config = {
         .ap = {
-            .ssid = EXAMPLE_ESP_WIFI_AP_SSID,
-            .ssid_len = strlen(EXAMPLE_ESP_WIFI_AP_SSID),
-            .channel = EXAMPLE_ESP_WIFI_CHANNEL,
-            .password = EXAMPLE_ESP_WIFI_AP_PASSWD,
-            .max_connection = EXAMPLE_MAX_STA_CONN,
+            .ssid = DEFAULT_WIFI_AP_SSID,
+            .ssid_len = strlen(DEFAULT_WIFI_AP_SSID),
+            .channel = DEFAULT_ESP_WIFI_CHANNEL,
+            .password = DEFAULT_WIFI_AP_PASSWD,
+            .max_connection = DEFAULT_MAX_STA_CONN,
             .authmode = WIFI_AUTH_WPA2_PSK,
             .pmf_cfg = {
                 .required = false,
@@ -30,20 +32,21 @@ esp_netif_t *wifi_init_softap(void)
         },
     };
 
-    if (strlen(EXAMPLE_ESP_WIFI_AP_PASSWD) == 0) {
+    if (strlen(DEFAULT_WIFI_AP_PASSWD) == 0) {
         wifi_ap_config.ap.authmode = WIFI_AUTH_OPEN;
     }
 
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_ap_config));
 
     ESP_LOGI(TAG, "wifi_init_softap finished. SSID:%s password:%s channel:%d",
-             EXAMPLE_ESP_WIFI_AP_SSID, EXAMPLE_ESP_WIFI_AP_PASSWD, EXAMPLE_ESP_WIFI_CHANNEL);
+             DEFAULT_WIFI_AP_SSID, DEFAULT_WIFI_AP_PASSWD, DEFAULT_ESP_WIFI_CHANNEL);
 
     return esp_netif_ap;
 }
 
 void run_network_manager(void){
     ESP_LOGI(TAG, "Starting network manager...");
+    s_wifi_event_group = xEventGroupCreate();
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
@@ -58,13 +61,13 @@ void run_network_manager(void){
     // Register event handler for Wi-Fi and IP related events
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
                                                         ESP_EVENT_ANY_ID,
-                                                        &wifi_event_handler,
+                                                        &network_event_handler,
                                                         NULL,
                                                         NULL));
 
     ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT,
                                                         ESP_EVENT_ANY_ID,
-                                                        &wifi_event_handler,
+                                                        &network_event_handler,
                                                         NULL,
                                                         NULL));
 
@@ -79,7 +82,12 @@ void run_network_manager(void){
     ESP_ERROR_CHECK(esp_wifi_start());
 }
 
-static void wifi_event_handler(void *arg, esp_event_base_t event_base,
+EventGroupHandle_t get_wifi_event_group(void)
+{
+    return s_wifi_event_group;
+}
+
+static void network_event_handler(void *arg, esp_event_base_t event_base,
                                int32_t event_id, void *event_data)
 {
     if (event_base == WIFI_EVENT)
@@ -111,11 +119,13 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
         case WIFI_EVENT_STA_CONNECTED:
             ESP_LOGD(TAG, "WIFI_EVENT_STA_CONNECTED");
             {
+                xEventGroupSetBits(s_wifi_event_group, STA_CONNECTED_BIT);
             }
             break;
         case WIFI_EVENT_STA_DISCONNECTED:
             ESP_LOGD(TAG, "WIFI_EVENT_STA_DISCONNECTED");
             {
+                xEventGroupClearBits(s_wifi_event_group, STA_CONNECTED_BIT);
             }
             break;
         case WIFI_EVENT_STA_AUTHMODE_CHANGE:
@@ -126,11 +136,13 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
         case WIFI_EVENT_AP_START:
             ESP_LOGD(TAG, "WIFI_EVENT_AP_START");
             {
+                xEventGroupSetBits(s_wifi_event_group, AP_RUNNING_BIT);
             }
             break;
         case WIFI_EVENT_AP_STOP:
             ESP_LOGD(TAG, "WIFI_EVENT_AP_STOP");
             {
+                xEventGroupClearBits(s_wifi_event_group, AP_RUNNING_BIT);
             }
             break;
         case WIFI_EVENT_AP_STACONNECTED:
@@ -179,11 +191,13 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
             {
                 ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
                 ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
+                xEventGroupSetBits(s_wifi_event_group, STA_HAS_IP_BIT);
             }
             break;
         case IP_EVENT_STA_LOST_IP:
             ESP_LOGD(TAG, "IP_EVENT_STA_LOST_IP");
             {
+                xEventGroupClearBits(s_wifi_event_group, STA_HAS_IP_BIT);
             }
             break;
         case IP_EVENT_AP_STAIPASSIGNED:
@@ -198,6 +212,11 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
             break;
         case IP_EVENT_ETH_GOT_IP:
             ESP_LOGD(TAG, "IP_EVENT_ETH_GOT_IP");
+            {
+            }
+            break;
+        case IP_EVENT_ETH_LOST_IP:
+            ESP_LOGD(TAG, "IP_EVENT_ETH_LOST_IP");
             {
             }
             break;
