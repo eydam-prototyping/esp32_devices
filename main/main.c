@@ -20,7 +20,10 @@ void app_main(void)
     printf("Hello world!\n");
 
     run_network_manager();
-    run_http_server(get_wifi_event_group());
+    http_server_ctx_t ctx = {
+        .wifi_event_group = get_wifi_event_group(),
+    };
+    run_http_server(&ctx);
 
     /* Print chip information */
     esp_chip_info_t chip_info;

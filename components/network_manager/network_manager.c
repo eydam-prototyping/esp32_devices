@@ -74,9 +74,9 @@ void run_network_manager(void){
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
 
-    ESP_LOGI(TAG, "ESP_WIFI_MODE_AP");
+    ESP_LOGI(TAG, "ESP_WIFI_MODE_APSTA");
     esp_netif_t *esp_netif_ap = wifi_init_softap();
 
     ESP_ERROR_CHECK(esp_wifi_start());
@@ -102,6 +102,8 @@ static void network_event_handler(void *arg, esp_event_base_t event_base,
         case WIFI_EVENT_SCAN_DONE:
             ESP_LOGD(TAG, "WIFI_EVENT_SCAN_DONE");
             {
+                xEventGroupClearBits(s_wifi_event_group, SCANNING_BIT);
+                xEventGroupSetBits(s_wifi_event_group, SCAN_DONE_BIT);
             }
             break;
         case WIFI_EVENT_STA_START:

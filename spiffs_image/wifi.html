@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WiFi Configuration - ESP32 Device Manager</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>WiFi Configuration</h1>
+            <nav>
+                <a href="/" class="nav-link">Dashboard</a>
+                <a href="/wifi.html" class="nav-link active">WiFi Configuration</a>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Current WiFi Status -->
+            <div class="card">
+                <h2>Current WiFi Status</h2>
+                <div class="status-display">
+                    <div class="status-item">
+                        <span class="status-label">Connection Status:</span>
+                        <span id="current-status" class="status-badge">Loading...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Connected Network:</span>
+                        <span id="current-ssid">Loading...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Signal Strength:</span>
+                        <span id="current-rssi">Loading...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">IP Address:</span>
+                        <span id="current-ip">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Saved WiFi Configuration -->
+            <div class="card">
+                <h2>Saved WiFi Configuration</h2>
+                <div class="config-display">
+                    <div class="config-section">
+                        <h3>Station (STA) Configuration</h3>
+                        <div class="config-details" id="sta-config-details">
+                            <div class="config-item">
+                                <span class="config-label">Saved Network:</span>
+                                <span id="saved-sta-ssid">Loading...</span>
+                            </div>
+                            <div class="config-item">
+                                <span class="config-label">Password:</span>
+                                <span id="saved-sta-password">Loading...</span>
+                            </div>
+                            <div class="config-item">
+                                <span class="config-label">BSSID Binding:</span>
+                                <span id="saved-sta-bssid-info">Loading...</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary btn-small" onclick="loadStaConfig(); showStaConfigDetails();">
+                            🔄 Refresh STA Config
+                        </button>
+                    </div>
+                    
+                    <div class="config-section">
+                        <h3>Access Point (AP) Configuration</h3>
+                        <div class="config-details" id="ap-config-details">
+                            <div class="config-item">
+                                <span class="config-label">AP Network Name:</span>
+                                <span id="saved-ap-ssid">Loading...</span>
+                            </div>
+                            <div class="config-item">
+                                <span class="config-label">Security:</span>
+                                <span id="saved-ap-security">Loading...</span>
+                            </div>
+                            <div class="config-item">
+                                <span class="config-label">Channel:</span>
+                                <span id="saved-ap-channel">Loading...</span>
+                            </div>
+                            <div class="config-item">
+                                <span class="config-label">Max Connections:</span>
+                                <span id="saved-ap-max-conn">Loading...</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary btn-small" onclick="loadApConfig(); showApConfigDetails();">
+                            🔄 Refresh AP Config
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WiFi Scanner -->
+            <div class="card">
+                <h2>Available Networks</h2>
+                <div class="scanner-controls">
+                    <button class="btn btn-primary" onclick="scanNetworks()" id="scan-btn">
+                        <span class="btn-icon">🔍</span>
+                        Scan for Networks
+                    </button>
+                    <div class="scan-status" id="scan-status"></div>
+                </div>
+                
+                <div class="networks-container" id="networks-container">
+                    <div class="networks-placeholder">
+                        <p>Click "Scan for Networks" to discover available WiFi networks</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WiFi Connection Form -->
+            <div class="card" id="connection-form" style="display: none;">
+                <h2>Connect to Network</h2>
+                <form id="wifi-form">
+                    <div class="form-group">
+                        <label for="selected-ssid">Selected Network:</label>
+                        <input type="text" id="selected-ssid" readonly>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="selected-bssid">BSSID:</label>
+                        <input type="text" id="selected-bssid" readonly>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="wifi-password">Password:</label>
+                        <div class="password-input">
+                            <input type="password" id="wifi-password" placeholder="Enter WiFi password">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('wifi-password')">👁️</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="specific-bssid">
+                            Connect only to this specific access point (BSSID)
+                        </label>
+                        <p class="help-text">If unchecked, the device will connect to any access point with this network name</p>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="cancelConnection()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Connect</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Access Point Configuration -->
+            <div class="card">
+                <h2>Access Point Configuration</h2>
+                <form id="ap-form">
+                    <div class="form-group">
+                        <label for="ap-ssid">AP Network Name (SSID):</label>
+                        <input type="text" id="ap-ssid" placeholder="ESP32_AP" maxlength="32">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ap-password">AP Password:</label>
+                        <div class="password-input">
+                            <input type="password" id="ap-password" placeholder="Enter AP password (min. 8 characters)" minlength="8">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('ap-password')">👁️</button>
+                        </div>
+                        <p class="help-text">Leave empty for open network (not recommended)</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ap-channel">WiFi Channel:</label>
+                        <select id="ap-channel">
+                            <option value="1">1 (2412 MHz)</option>
+                            <option value="2">2 (2417 MHz)</option>
+                            <option value="3">3 (2422 MHz)</option>
+                            <option value="4">4 (2427 MHz)</option>
+                            <option value="5">5 (2432 MHz)</option>
+                            <option value="6" selected>6 (2437 MHz)</option>
+                            <option value="7">7 (2442 MHz)</option>
+                            <option value="8">8 (2447 MHz)</option>
+                            <option value="9">9 (2452 MHz)</option>
+                            <option value="10">10 (2457 MHz)</option>
+                            <option value="11">11 (2462 MHz)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="max-connections">Maximum Connections:</label>
+                        <select id="max-connections">
+                            <option value="1">1 device</option>
+                            <option value="2">2 devices</option>
+                            <option value="3">3 devices</option>
+                            <option value="4" selected>4 devices</option>
+                            <option value="5">5 devices</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="loadApConfig()">Load Current</button>
+                        <button type="submit" class="btn btn-primary">Save AP Configuration</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Advanced Options -->
+            <div class="card">
+                <h2>Advanced Options</h2>
+                <div class="action-buttons">
+                    <button class="btn btn-warning" onclick="disconnectWifi()">
+                        <span class="btn-icon">❌</span>
+                        Disconnect WiFi
+                    </button>
+                    <button class="btn btn-danger" onclick="resetNetworkSettings()">
+                        <span class="btn-icon">🔄</span>
+                        Reset Network Settings
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 ESP32 Device Manager | <a href="/">Back to Dashboard</a></p>
+        </footer>
+    </div>
+
+    <!-- Modal for confirmation dialogs -->
+    <div id="modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3 id="modal-title">Confirm Action</h3>
+            <p id="modal-message">Are you sure?</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" id="modal-confirm" onclick="confirmAction()">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/wifi.js"></script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 
 static const char *TAG = "http_server";
 
-void run_http_server(EventGroupHandle_t wifi_event_group){
+void run_http_server(http_server_ctx_t *ctx){
     ESP_LOGI(TAG, "Initializing SPIFFS...");
     if (spiffs_init() != ESP_OK)
     {
@@ -19,7 +19,7 @@ void run_http_server(EventGroupHandle_t wifi_event_group){
     ESP_LOGI(TAG, "Starting HTTP server...");
 
     // Wait until either the AP or STA bits are set in the event group.
-    EventBits_t bits = xEventGroupWaitBits(wifi_event_group,
+    EventBits_t bits = xEventGroupWaitBits(ctx->wifi_event_group,
                                            AP_RUNNING_BIT | STA_HAS_IP_BIT,
                                            pdFALSE,
                                            pdFALSE,
@@ -31,6 +31,6 @@ void run_http_server(EventGroupHandle_t wifi_event_group){
     if (httpd_start(&server, &config) == ESP_OK)
     {
         // Register URI handlers
-        register_uri_handlers(server);
+        register_uri_handlers(server, ctx);
     }
 }
