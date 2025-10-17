@@ -50,7 +50,7 @@ async function loadCurrentStatus() {
         updateStatusDisplay(data);
     } catch (error) {
         console.error('Error loading WiFi status:', error);
-        showError('Failed to load WiFi status');
+        //showError('Failed to load WiFi status');
     }
 }
 
@@ -64,13 +64,13 @@ function updateStatusDisplay(data) {
         statusElement.textContent = 'Connected';
         statusElement.className = 'status-badge connected';
         ssidElement.textContent = data.sta_ssid || 'Unknown';
-        rssiElement.textContent = 'N/A'; // RSSI not in status, need separate endpoint
+        rssiElement.textContent = data.rssi + ' dBm' || 'Unknown';
         ipElement.textContent = data.sta_ip || 'Unknown';
     } else if (data.sta_connected) {
         statusElement.textContent = 'Connected (No IP)';
         statusElement.className = 'status-badge disconnected';
         ssidElement.textContent = data.sta_ssid || 'Unknown';
-        rssiElement.textContent = 'N/A';
+        rssiElement.textContent = data.rssi + ' dBm' || 'Unknown';
         ipElement.textContent = 'Waiting for IP...';
     } else {
         statusElement.textContent = 'Disconnected';
@@ -163,7 +163,7 @@ async function scanNetworks() {
         
     } catch (error) {
         console.error('Error scanning networks:', error);
-        showError('Failed to scan networks: ' + error.message);
+        //showError('Failed to scan networks: ' + error.message);
         scanStatus.textContent = 'Scan failed - ' + error.message;
         container.innerHTML = '<div class="networks-placeholder"><p>Failed to scan networks. Please try again.</p></div>';
         
@@ -278,7 +278,7 @@ async function handleWifiConnection(event) {
     event.preventDefault();
     
     if (!selectedNetwork) {
-        showError('No network selected');
+        //showError('No network selected');
         return;
     }
     
@@ -287,7 +287,7 @@ async function handleWifiConnection(event) {
     
     // Validate password for secured networks
     if (selectedNetwork.authmode !== 0 && !password.trim()) {
-        showError('Password is required for secured networks');
+        //showError('Password is required for secured networks');
         return;
     }
     
@@ -339,7 +339,7 @@ async function performWifiConnection(connectionData) {
         }
     } catch (error) {
         console.error('Error configuring WiFi:', error);
-        showError('Failed to configure WiFi: ' + error.message);
+        //showError('Failed to configure WiFi: ' + error.message);
     }
 }
 
@@ -473,12 +473,12 @@ async function handleApConfiguration(event) {
     
     // Validate
     if (!apConfig.ssid.trim()) {
-        showError('AP SSID cannot be empty');
+        //showError('AP SSID cannot be empty');
         return;
     }
     
     if (apConfig.password && apConfig.password.length < 8) {
-        showError('AP password must be at least 8 characters (or empty for open network)');
+        //showError('AP password must be at least 8 characters (or empty for open network)');
         return;
     }
     
@@ -512,7 +512,7 @@ async function performApConfiguration(apConfig) {
         }
     } catch (error) {
         console.error('Error saving AP config:', error);
-        showError('Failed to save AP configuration: ' + error.message);
+        //showError('Failed to save AP configuration: ' + error.message);
     }
 }
 
@@ -534,7 +534,7 @@ async function disconnectWifi() {
                 }
             } catch (error) {
                 console.error('Error disconnecting WiFi:', error);
-                showError('Failed to disconnect: ' + error.message);
+                //showError('Failed to disconnect: ' + error.message);
             }
         }
     );
@@ -559,7 +559,7 @@ async function resetNetworkSettings() {
                 }
             } catch (error) {
                 console.error('Error resetting network settings:', error);
-                showError('Failed to reset: ' + error.message);
+                //showError('Failed to reset: ' + error.message);
             }
         }
     );

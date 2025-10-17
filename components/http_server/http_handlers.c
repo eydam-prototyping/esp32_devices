@@ -73,6 +73,13 @@ static esp_err_t api_get_handler(httpd_req_t *req)
         return ESP_OK;
     }
 
+    if (strcmp(uri, "/api/device/info") == 0) {
+        const char* resp_str = get_device_info(req);
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_send(req, resp_str, strlen(resp_str));
+        return ESP_OK;
+    }
+
     httpd_resp_send_404(req);
     return ESP_ERR_NOT_FOUND;
 }

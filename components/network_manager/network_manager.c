@@ -3,45 +3,65 @@
 static const char *TAG = "network_manager";
 static EventGroupHandle_t s_wifi_event_group;
 
-#define DEFAULT_WIFI_AP_SSID            "ESP32_AP"
-#define DEFAULT_WIFI_AP_PASSWD          "esp32testpassword"
-#define DEFAULT_ESP_WIFI_CHANNEL            1
-#define DEFAULT_MAX_STA_CONN                5
+uint8_t wifi_retry_count = 0;
+esp_netif_t *esp_netif_sta = NULL;
+esp_netif_t *esp_netif_ap = NULL;
 
 static void network_event_handler(void *arg, esp_event_base_t event_base,
                                int32_t event_id, void *event_data);
 
 void run_network_manager(void);
 
-
-esp_netif_t *wifi_init_softap(void)
+void wifi_init_softap(void)
 {
-    esp_netif_t *esp_netif_ap = esp_netif_create_default_wifi_ap();
+    esp_netif_ap = esp_netif_create_default_wifi_ap();
 
     wifi_config_t wifi_ap_config = {
         .ap = {
-            .ssid = DEFAULT_WIFI_AP_SSID,
-            .ssid_len = strlen(DEFAULT_WIFI_AP_SSID),
-            .channel = DEFAULT_ESP_WIFI_CHANNEL,
-            .password = DEFAULT_WIFI_AP_PASSWD,
-            .max_connection = DEFAULT_MAX_STA_CONN,
+            .ssid_len = strlen(AP_SSID),
+            .channel = AP_CHANNEL,
+            .max_connection = AP_MAX_CONNECTIONS,
             .authmode = WIFI_AUTH_WPA2_PSK,
             .pmf_cfg = {
                 .required = false,
             },
         },
     };
+    strcpy((char*)wifi_ap_config.ap.ssid, AP_SSID);
+    strcpy((char*)wifi_ap_config.ap.password, AP_PASSWORD);
 
-    if (strlen(DEFAULT_WIFI_AP_PASSWD) == 0) {
+    if (strlen(AP_PASSWORD) == 0) {
         wifi_ap_config.ap.authmode = WIFI_AUTH_OPEN;
     }
 
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_ap_config));
 
     ESP_LOGI(TAG, "wifi_init_softap finished. SSID:%s password:%s channel:%d",
-             DEFAULT_WIFI_AP_SSID, DEFAULT_WIFI_AP_PASSWD, DEFAULT_ESP_WIFI_CHANNEL);
+             AP_SSID, AP_PASSWORD, AP_CHANNEL);
+}
 
-    return esp_netif_ap;
+void wifi_init_sta(void){
+    esp_netif_sta = esp_netif_create_default_wifi_sta();
+
+    wifi_config_t wifi_sta_config = {
+        .sta = {
+            .scan_method = WIFI_FAST_SCAN,
+            .bssid_set = STA_USE_SPECIFIC_BSSID,
+        }
+    };
+
+    strcpy((char*)wifi_sta_config.sta.ssid, STA_SSID);
+    strcpy((char*)wifi_sta_config.sta.password, STA_PASSWORD);
+    if (STA_USE_SPECIFIC_BSSID) {
+        sscanf(STA_BSSID, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
+               &wifi_sta_config.sta.bssid[0], &wifi_sta_config.sta.bssid[1], &wifi_sta_config.sta.bssid[2],
+               &wifi_sta_config.sta.bssid[3], &wifi_sta_config.sta.bssid[4], &wifi_sta_config.sta.bssid[5]);
+    }
+
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_sta_config));
+
+    ESP_LOGI(TAG, "wifi_init_sta finished. SSID:%s password:%s",
+             STA_SSID, (strlen(STA_PASSWORD) == 0) ? "<empty>" : "********");
 }
 
 void run_network_manager(void){
@@ -70,14 +90,22 @@ void run_network_manager(void){
                                                         &network_event_handler,
                                                         NULL,
                                                         NULL));
+    
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
+    load_wifi_config();
 
-    ESP_LOGI(TAG, "ESP_WIFI_MODE_APSTA");
-    esp_netif_t *esp_netif_ap = wifi_init_softap();
+    if (strcmp(STA_SSID, "") == 0) {
+        ESP_LOGI(TAG, "Starting in APSTA mode, because SSID is empty.");
+        ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
+        wifi_init_softap();
+    } else {
+        ESP_LOGI(TAG, "Starting in STA mode.");
+        ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+        wifi_init_sta();
+    }
 
     ESP_ERROR_CHECK(esp_wifi_start());
 }
@@ -122,12 +150,29 @@ static void network_event_handler(void *arg, esp_event_base_t event_base,
             ESP_LOGD(TAG, "WIFI_EVENT_STA_CONNECTED");
             {
                 xEventGroupSetBits(s_wifi_event_group, STA_CONNECTED_BIT);
+                wifi_retry_count = 0;
+                ESP_LOGI(TAG, "Connected to AP");
             }
             break;
         case WIFI_EVENT_STA_DISCONNECTED:
             ESP_LOGD(TAG, "WIFI_EVENT_STA_DISCONNECTED");
             {
                 xEventGroupClearBits(s_wifi_event_group, STA_CONNECTED_BIT);
+                xEventGroupClearBits(s_wifi_event_group, STA_HAS_IP_BIT);
+                if (wifi_retry_count < MAXIMUM_WIFI_RETRY_COUNT) {
+                    esp_wifi_connect();
+                    wifi_retry_count++;
+                    ESP_LOGI(TAG, "Retrying to connect to the AP (Attempt %d of %d)", wifi_retry_count, MAXIMUM_WIFI_RETRY_COUNT);
+                } else {
+                    xEventGroupSetBits(s_wifi_event_group, STA_FAILED);
+                    ESP_LOGI(TAG, "Failed to connect to the AP after %d attempts", MAXIMUM_WIFI_RETRY_COUNT);
+                    if (strcmp(AP_SSID, "") != 0) {
+                        ESP_LOGI(TAG, "Starting APSTA mode");
+                        esp_wifi_set_mode(WIFI_MODE_APSTA);
+                        wifi_init_softap();
+                        esp_wifi_start();
+                    }
+                }
             }
             break;
         case WIFI_EVENT_STA_AUTHMODE_CHANGE:

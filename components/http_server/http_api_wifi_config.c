@@ -176,8 +176,8 @@ char *post_wifi_config_ap(httpd_req_t *req)
     // Write the new WiFi AP configuration to NVS
     nvs_set_str(nvs_handle, NVS_KEY_AP_SSID, ap_ssid->valuestring);
     nvs_set_str(nvs_handle, NVS_KEY_AP_PASSWORD, ap_password->valuestring);
-    nvs_set_i8(nvs_handle, NVS_KEY_AP_CHANNEL, ap_channel ? ap_channel->valueint : 6);
-    nvs_set_i8(nvs_handle, NVS_KEY_AP_MAX_CONNECTIONS, ap_max_connections ? ap_max_connections->valueint : 4);
+    nvs_set_i8(nvs_handle, NVS_KEY_AP_CHANNEL, ap_channel ? ap_channel->valueint : DEFAULT_WIFI_AP_CHANNEL);
+    nvs_set_i8(nvs_handle, NVS_KEY_AP_MAX_CONNECTIONS, ap_max_connections ? ap_max_connections->valueint : DEFAULT_WIFI_AP_MAX_CONNECTIONS);
 
     // Commit the changes
     err = nvs_commit(nvs_handle);
