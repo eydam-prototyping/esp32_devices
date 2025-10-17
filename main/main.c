@@ -12,10 +12,18 @@
 #include "esp_chip_info.h"
 #include "esp_flash.h"
 #include "esp_system.h"
+#include "network_manager.h"
+#include "http_server.h"
 
 void app_main(void)
 {
     printf("Hello world!\n");
+
+    run_network_manager();
+    http_server_ctx_t ctx = {
+        .wifi_event_group = get_wifi_event_group(),
+    };
+    run_http_server(&ctx);
 
     /* Print chip information */
     esp_chip_info_t chip_info;
@@ -42,7 +50,7 @@ void app_main(void)
 
     printf("Minimum free heap size: %" PRIu32 " bytes\n", esp_get_minimum_free_heap_size());
 
-    for (int i = 10; i >= 0; i--) {
+    for (int i = 300; i >= 0; i--) {
         printf("Restarting in %d seconds...\n", i);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }

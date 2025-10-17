@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Device Manager</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ESP32 Device Manager</h1>
+            <nav>
+                <a href="/" class="nav-link active">Dashboard</a>
+                <a href="/wifi.html" class="nav-link">WiFi Configuration</a>
+            </nav>
+        </header>
+
+        <main>
+            <div class="card">
+                <h2>System Status</h2>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <h3>WiFi Status (AP-Mode)</h3>
+                        <div id="wifi-ap-status" class="status-value">Loading...</div>
+                    </div>
+                    <div class="status-item">
+                        <h3>WiFi Status (Station Mode)</h3>
+                        <div id="wifi-sta-status" class="status-value">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Device Information</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Chip Type:</span>
+                        <span id="chip-type" class="info-value">Loading...</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">CPU Cores:</span>
+                        <span id="cpu-cores" class="info-value">Loading...</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Flash Size:</span>
+                        <span id="flash-size" class="info-value">Loading...</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Free Heap:</span>
+                        <span id="free-heap" class="info-value">Loading...</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Firmware Version:</span>
+                        <span id="firmware-version" class="info-value">v1.0.0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">MAC Address:</span>
+                        <span id="mac-address" class="info-value">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Quick Actions</h2>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="refreshStatus()">
+                        <span class="btn-icon">🔄</span>
+                        Refresh Status
+                    </button>
+                    <button class="btn btn-secondary" onclick="toggleLed()">
+                        <span class="btn-icon">💡</span>
+                        Toggle LED
+                    </button>
+                    <button class="btn btn-warning" onclick="restartDevice()">
+                        <span class="btn-icon">🔄</span>
+                        Restart Device
+                    </button>
+                    <a href="/wifi.html" class="btn btn-info">
+                        <span class="btn-icon">📶</span>
+                        WiFi Settings
+                    </a>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 ESP32 Device Manager | Last updated: <span id="last-updated">Never</span></p>
+        </footer>
+    </div>
+
+    <script src="/script.js"></script>
+</body>
+</html>
