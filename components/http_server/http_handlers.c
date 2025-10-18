@@ -39,44 +39,74 @@ static esp_err_t api_get_handler(httpd_req_t *req)
     ESP_LOGI(TAG, "API request: %s", uri);
 
     if (strcmp(uri, "/api/wifi/status") == 0) {
-        const char* resp_str = get_wifi_status_json(req);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, resp_str, strlen(resp_str));
+        char* resp_str = get_wifi_status_json(req);
+        if (resp_str != NULL) {
+            httpd_resp_set_type(req, "application/json");
+            httpd_resp_send(req, resp_str, strlen(resp_str));
+            free(resp_str); // Free the JSON string
+        } else {
+            httpd_resp_send_500(req);
+        }
         return ESP_OK;
     }
 
     if (strcmp(uri, "/api/wifi/scan/start") == 0) {
-        const char* resp_str = get_wifi_scan_start(req);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, resp_str, strlen(resp_str));
+        char* resp_str = get_wifi_scan_start(req);
+        if (resp_str != NULL) {
+            httpd_resp_set_type(req, "application/json");
+            httpd_resp_send(req, resp_str, strlen(resp_str));
+            free(resp_str); // Free the JSON string
+        } else {
+            httpd_resp_send_500(req);
+        }
         return ESP_OK;
     }
 
     if (strcmp(uri, "/api/wifi/scan/results") == 0) {
-        const char* resp_str = get_wifi_scan_results(req);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, resp_str, strlen(resp_str));
+        char* resp_str = get_wifi_scan_results(req);
+        if (resp_str != NULL) {
+            httpd_resp_set_type(req, "application/json");
+            httpd_resp_send(req, resp_str, strlen(resp_str));
+            free(resp_str); // Free the JSON string
+        } else {
+            httpd_resp_send_500(req);
+        }
         return ESP_OK;
     }
 
     if (strcmp(uri, "/api/wifi/config/ap") == 0) {
-        const char* resp_str = get_wifi_config_ap(req);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, resp_str, strlen(resp_str));
+        char* resp_str = get_wifi_config_ap(req);
+        if (resp_str != NULL) {
+            httpd_resp_set_type(req, "application/json");
+            httpd_resp_send(req, resp_str, strlen(resp_str));
+            free(resp_str); // Free the JSON string
+        } else {
+            httpd_resp_send_500(req);
+        }
         return ESP_OK;
     }
 
     if (strcmp(uri, "/api/wifi/config/sta") == 0) {
-        const char* resp_str = get_wifi_config_sta(req);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, resp_str, strlen(resp_str));
+        char* resp_str = get_wifi_config_sta(req);
+        if (resp_str != NULL) {
+            httpd_resp_set_type(req, "application/json");
+            httpd_resp_send(req, resp_str, strlen(resp_str));
+            free(resp_str); // Free the JSON string
+        } else {
+            httpd_resp_send_500(req);
+        }
         return ESP_OK;
     }
 
     if (strcmp(uri, "/api/device/info") == 0) {
-        const char* resp_str = get_device_info(req);
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, resp_str, strlen(resp_str));
+        char* resp_str = get_device_info(req);
+        if (resp_str != NULL) {
+            httpd_resp_set_type(req, "application/json");
+            httpd_resp_send(req, resp_str, strlen(resp_str));
+            free(resp_str); // Free the JSON string
+        } else {
+            httpd_resp_send_500(req);
+        }
         return ESP_OK;
     }
 
@@ -96,16 +126,18 @@ static esp_err_t api_post_handler(httpd_req_t *req)
     ESP_LOGI(TAG, "API request: %s", uri);
 
     if (strcmp(uri, "/api/wifi/config/ap") == 0) {
-        const char* resp_str = post_wifi_config_ap(req);
+        char* resp_str = post_wifi_config_ap(req);
         httpd_resp_set_type(req, "application/json");
         httpd_resp_send(req, resp_str, strlen(resp_str));
+        free(resp_str);  // Free the JSON string allocated by cJSON_Print()
         return ESP_OK;
     }
 
     if (strcmp(uri, "/api/wifi/config/sta") == 0) {
-        const char* resp_str = post_wifi_config_sta(req);
+        char* resp_str = post_wifi_config_sta(req);
         httpd_resp_set_type(req, "application/json");
         httpd_resp_send(req, resp_str, strlen(resp_str));
+        free(resp_str);  // Free the JSON string allocated by cJSON_Print()
         return ESP_OK;
     }
 

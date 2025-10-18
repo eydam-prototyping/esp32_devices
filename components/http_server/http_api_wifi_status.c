@@ -4,23 +4,6 @@ static const char *TAG = "http_api_wifi_status.c";
 
 /* Get WiFi status as JSON
  * Endpoint: /api/wifi/status
- *
- * Example JSON response:
- * {
- *   "ap_running": true,
- *   "ap_ssid": "ESP32_AP",
- *   "ap_password": "esp32testpassword",
- *   "ap_ip": "192.168.4.1",
- *   "sta_connected": true,
- *   "sta_ssid": "Your_SSID",
- *   "sta_password": "Your_Password",
- *   "sta_has_ip": true,
- *   "sta_ip": "192.168.1.100",
- *   "sta_mac": "00:11:22:33:44:55",
- *   "sta_gateway": "192.168.1.1",
- *   "sta_netmask": "255.255.255.0",
- *   "sta_dns": "8.8.8.8"
- * }
  */
 char *get_wifi_status_json(httpd_req_t *req)
 {
@@ -49,13 +32,25 @@ char *get_wifi_status_json(httpd_req_t *req)
             esp_netif_ip_info_t ap_ip_info;
             if (esp_netif_get_ip_info(ap_netif, &ap_ip_info) == ESP_OK) {
                 char ap_ip_str[16];
+                char ap_netmask_str[16];
+                char ap_gateway_str[16];
                 snprintf(ap_ip_str, sizeof(ap_ip_str), IPSTR, IP2STR(&ap_ip_info.ip));
+                snprintf(ap_netmask_str, sizeof(ap_netmask_str), IPSTR, IP2STR(&ap_ip_info.netmask));
+                snprintf(ap_gateway_str, sizeof(ap_gateway_str), IPSTR, IP2STR(&ap_ip_info.gw));
                 cJSON_AddStringToObject(root, "ap_ip", ap_ip_str);
-            } else {
-                cJSON_AddStringToObject(root, "ap_ip", "192.168.4.1");  // Default fallback
+                cJSON_AddStringToObject(root, "ap_netmask", ap_netmask_str);
+                cJSON_AddStringToObject(root, "ap_gateway", ap_gateway_str);
             }
-        } else {
-            cJSON_AddStringToObject(root, "ap_ip", "192.168.4.1");  // Default fallback
+            char ap_mac_str[18];
+            uint8_t ap_mac[6];
+            const char *ap_hostname;
+            if (esp_netif_get_mac(ap_netif, ap_mac) == ESP_OK)
+            {
+                snprintf(ap_mac_str, sizeof(ap_mac_str), MACSTR, MAC2STR(ap_mac));
+                cJSON_AddStringToObject(root, "ap_mac", ap_mac_str);
+            }
+            esp_netif_get_hostname(ap_netif, &ap_hostname);
+            cJSON_AddStringToObject(root, "ap_hostname", ap_hostname);
         }
     }
     cJSON_AddBoolToObject(root, "sta_connected", sta_connected);
@@ -64,14 +59,16 @@ char *get_wifi_status_json(httpd_req_t *req)
         wifi_config_t wifi_sta_config;
         esp_wifi_get_config(WIFI_IF_STA, &wifi_sta_config);
         cJSON_AddStringToObject(root, "sta_ssid", (const char *)wifi_sta_config.sta.ssid);
+        #if BUILD_TYPE == DEVELOP
         cJSON_AddStringToObject(root, "sta_password", (const char *)wifi_sta_config.sta.password);
+        #endif
         cJSON_AddBoolToObject(root, "sta_has_ip", sta_has_ip);
         int rssi;
         esp_err_t err = esp_wifi_sta_get_rssi(&rssi);
         if (err == ESP_OK) {
-            cJSON_AddNumberToObject(root, "rssi", rssi);
+            cJSON_AddNumberToObject(root, "sta_rssi", rssi);
         } else {
-            cJSON_AddNumberToObject(root, "rssi", 0);
+            cJSON_AddNumberToObject(root, "sta_rssi", 0);
         }
 
         if (sta_has_ip) {
@@ -82,16 +79,12 @@ char *get_wifi_status_json(httpd_req_t *req)
                 if (esp_netif_get_ip_info(sta_netif, &sta_ip_info) == ESP_OK) {
                     char ip_str[16], gw_str[16], netmask_str[16];
                     snprintf(ip_str, sizeof(ip_str), IPSTR, IP2STR(&sta_ip_info.ip));
-                    snprintf(gw_str, sizeof(gw_str), IPSTR, IP2STR(&sta_ip_info.gw));
                     snprintf(netmask_str, sizeof(netmask_str), IPSTR, IP2STR(&sta_ip_info.netmask));
+                    snprintf(gw_str, sizeof(gw_str), IPSTR, IP2STR(&sta_ip_info.gw));
                     
                     cJSON_AddStringToObject(root, "sta_ip", ip_str);
-                    cJSON_AddStringToObject(root, "sta_gateway", gw_str);
                     cJSON_AddStringToObject(root, "sta_netmask", netmask_str);
-                } else {
-                    cJSON_AddStringToObject(root, "sta_ip", "0.0.0.0");
-                    cJSON_AddStringToObject(root, "sta_gateway", "0.0.0.0");
-                    cJSON_AddStringToObject(root, "sta_netmask", "0.0.0.0");
+                    cJSON_AddStringToObject(root, "sta_gateway", gw_str);
                 }
                 
                 // Get MAC address
@@ -100,8 +93,6 @@ char *get_wifi_status_json(httpd_req_t *req)
                     char mac_str[18];
                     snprintf(mac_str, sizeof(mac_str), MACSTR, MAC2STR(sta_mac));
                     cJSON_AddStringToObject(root, "sta_mac", mac_str);
-                } else {
-                    cJSON_AddStringToObject(root, "sta_mac", "00:00:00:00:00:00");
                 }
                 
                 // Get DNS servers
@@ -110,16 +101,11 @@ char *get_wifi_status_json(httpd_req_t *req)
                     char dns_str[16];
                     snprintf(dns_str, sizeof(dns_str), IPSTR, IP2STR(&dns_info.ip.u_addr.ip4));
                     cJSON_AddStringToObject(root, "sta_dns", dns_str);
-                } else {
-                    cJSON_AddStringToObject(root, "sta_dns", "0.0.0.0");
                 }
-            } else {
-                // Fallback if netif not found
-                cJSON_AddStringToObject(root, "sta_ip", "0.0.0.0");
-                cJSON_AddStringToObject(root, "sta_mac", "00:00:00:00:00:00");
-                cJSON_AddStringToObject(root, "sta_gateway", "0.0.0.0");
-                cJSON_AddStringToObject(root, "sta_netmask", "0.0.0.0");
-                cJSON_AddStringToObject(root, "sta_dns", "0.0.0.0");
+
+                const char *sta_hostname;
+                esp_netif_get_hostname(sta_netif, &sta_hostname);
+                cJSON_AddStringToObject(root, "sta_hostname", sta_hostname);
             }
         }
     }

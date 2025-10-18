@@ -34,6 +34,8 @@ void wifi_init_softap(void)
         wifi_ap_config.ap.authmode = WIFI_AUTH_OPEN;
     }
 
+    esp_netif_set_hostname(esp_netif_ap, AP_HOSTNAME);
+
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_ap_config));
 
     ESP_LOGI(TAG, "wifi_init_softap finished. SSID:%s password:%s channel:%d",
@@ -57,6 +59,9 @@ void wifi_init_sta(void){
                &wifi_sta_config.sta.bssid[0], &wifi_sta_config.sta.bssid[1], &wifi_sta_config.sta.bssid[2],
                &wifi_sta_config.sta.bssid[3], &wifi_sta_config.sta.bssid[4], &wifi_sta_config.sta.bssid[5]);
     }
+
+    esp_netif_set_hostname(esp_netif_sta, STA_HOSTNAME);
+
 
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_sta_config));
 

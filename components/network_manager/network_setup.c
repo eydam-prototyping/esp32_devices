@@ -6,11 +6,13 @@ char STA_SSID[32];
 char STA_PASSWORD[64];
 char STA_BSSID[18];
 bool STA_USE_SPECIFIC_BSSID;
+char STA_HOSTNAME[32];
 
 char AP_SSID[32];
 char AP_PASSWORD[64];
 uint8_t AP_CHANNEL;
 uint8_t AP_MAX_CONNECTIONS;
+char AP_HOSTNAME[32];
 
 void load_string_from_nvs(nvs_handle_t nvs_handle, const char* key, char* out_value, size_t max_len, const char* default_value) {
     size_t required_size = 0;
@@ -51,6 +53,9 @@ void load_wifi_config(void){
     load_i8_from_nvs(nvs_handle, NVS_KEY_STA_USE_SPECIFIC_BSSID, (int8_t*)&STA_USE_SPECIFIC_BSSID, DEFAULT_WIFI_STA_USE_SPECIFIC_BSSID);
     ESP_LOGI(TAG, "Loaded STA Use Specific BSSID: %s", STA_USE_SPECIFIC_BSSID ? "true" : "false");
 
+    load_string_from_nvs(nvs_handle, NVS_KEY_STA_HOSTNAME, STA_HOSTNAME, sizeof(STA_HOSTNAME), DEFAULT_WIFI_STA_HOSTNAME);
+    ESP_LOGI(TAG, "Loaded STA Hostname: %s", STA_HOSTNAME);
+
     load_string_from_nvs(nvs_handle, NVS_KEY_AP_SSID, AP_SSID, sizeof(AP_SSID), DEFAULT_WIFI_AP_SSID);
     ESP_LOGI(TAG, "Loaded AP SSID: %s", AP_SSID);
 
@@ -62,6 +67,9 @@ void load_wifi_config(void){
 
     load_i8_from_nvs(nvs_handle, NVS_KEY_AP_MAX_CONNECTIONS, (int8_t*)&AP_MAX_CONNECTIONS, DEFAULT_WIFI_AP_MAX_CONNECTIONS);
     ESP_LOGI(TAG, "Loaded AP Max Connections: %d", AP_MAX_CONNECTIONS);
+
+    load_string_from_nvs(nvs_handle, NVS_KEY_AP_HOSTNAME, AP_HOSTNAME, sizeof(AP_HOSTNAME), DEFAULT_WIFI_AP_HOSTNAME);
+    ESP_LOGI(TAG, "Loaded AP Hostname: %s", AP_HOSTNAME);
 
     nvs_close(nvs_handle);
 }

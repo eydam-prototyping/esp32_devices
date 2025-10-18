@@ -3,7 +3,7 @@
  *
  * SPDX-License-Identifier: CC0-1.0
  */
-
+#include "definitions.h"
 #include <stdio.h>
 #include <inttypes.h>
 #include "sdkconfig.h"
@@ -15,9 +15,19 @@
 #include "network_manager.h"
 #include "http_server.h"
 
+static const char *TAG = "main.c";
+
 void app_main(void)
 {
-    printf("Hello world!\n");
+    #if BUILD_TYPE == DEVELOP
+    ESP_LOGW(TAG, "*******************************");
+    ESP_LOGW(TAG, "***** BUILD TYPE: DEVELOP *****");
+    ESP_LOGW(TAG, "*******************************");
+    #else
+    ESP_LOGI(TAG, "**********************************");
+    ESP_LOGI(TAG, "***** BUILD TYPE: PRODUCTION *****");
+    ESP_LOGI(TAG, "**********************************");
+    #endif
 
     run_network_manager();
     http_server_ctx_t ctx = {

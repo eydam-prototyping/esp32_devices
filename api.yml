@@ -1,0 +1,31 @@
+openapi: '3.0.3'
+info:
+  title: ESP32 Devices API
+  version: '1.0'
+servers:
+  - url: http://192.168.10.66
+paths:
+  /api/wifi/status:
+    get:
+      responses:
+        '200':
+          description: OK
+  /api/wifi/config/ap:
+    get:
+      responses:
+        '200':
+          description: OK
+    post:
+      responses:
+        '200':
+          description: OK
+  /api/wifi/config/sta:
+    get:
+      responses:
+        '200':
+          description: OK
+  /api/device/info:
+    get:
+      responses:
+        '200':
+          description: OK
