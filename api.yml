@@ -24,7 +24,17 @@ paths:
       responses:
         '200':
           description: OK
-  /api/device/info:
+  /api/device/sysinfo:
+    get:
+      responses:
+        '200':
+          description: OK
+  /api/device/meminfo:
+    get:
+      responses:
+        '200':
+          description: OK
+  /api/device/storageinfo:
     get:
       responses:
         '200':

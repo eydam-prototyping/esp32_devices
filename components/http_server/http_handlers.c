@@ -98,8 +98,32 @@ static esp_err_t api_get_handler(httpd_req_t *req)
         return ESP_OK;
     }
 
-    if (strcmp(uri, "/api/device/info") == 0) {
+    if (strcmp(uri, "/api/device/sysinfo") == 0) {
         char* resp_str = get_device_info(req);
+        if (resp_str != NULL) {
+            httpd_resp_set_type(req, "application/json");
+            httpd_resp_send(req, resp_str, strlen(resp_str));
+            free(resp_str); // Free the JSON string
+        } else {
+            httpd_resp_send_500(req);
+        }
+        return ESP_OK;
+    }
+
+    if (strcmp(uri, "/api/device/meminfo") == 0) {
+        char* resp_str = get_device_memory_info(req);
+        if (resp_str != NULL) {
+            httpd_resp_set_type(req, "application/json");
+            httpd_resp_send(req, resp_str, strlen(resp_str));
+            free(resp_str); // Free the JSON string
+        } else {
+            httpd_resp_send_500(req);
+        }
+        return ESP_OK;
+    }
+
+    if (strcmp(uri, "/api/device/storageinfo") == 0) {
+        char* resp_str = get_device_storage_info(req);
         if (resp_str != NULL) {
             httpd_resp_set_type(req, "application/json");
             httpd_resp_send(req, resp_str, strlen(resp_str));

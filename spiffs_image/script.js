@@ -1,131 +1,467 @@
-// ESP32 Device Manager JavaScript
+// ESP32 Device Dashboard JavaScript
 
 let deviceInfo = {};
+let wifiInfo = {};
+let memoryUpdateInterval = null;
+let statusUpdateInterval = null;
 
-// Load device information on page load
+// Initialize dashboard on page load
 document.addEventListener('DOMContentLoaded', function() {
-    loadWifiStatus();
-    loadDeviceInfo();
-    
-    // Refresh every 5 seconds
-    setInterval(loadWifiStatus, 5000);
+    initializeDashboard();
 });
+
+async function initializeDashboard() {
+    console.log('🚀 Initializing ESP32 Dashboard...');
+    
+    // Load initial data
+    await loadDeviceInfo();
+    await loadWifiStatus();
+    
+    // Start real-time memory monitoring (every 1 second)
+    memoryUpdateInterval = setInterval(updateMemoryInfo, 1000);
+    
+    // Update other status info every 5 seconds
+    statusUpdateInterval = setInterval(() => {
+        loadWifiStatus();
+        updateSystemPerformance();
+        updatePartitionsAndTasks();
+    }, 5000);
+    
+    console.log('✅ Dashboard initialized successfully');
+}
+
+// Memory monitoring with 1-second updates
+async function updateMemoryInfo() {
+    try {
+        // Get memory info and storage info in parallel
+        const [memResponse, storageResponse] = await Promise.all([
+            fetch('/api/device/meminfo'),
+            fetch('/api/device/storageinfo')
+        ]);
+        
+        const memData = await memResponse.json();
+        const storageData = await storageResponse.json();
+        
+        updateMemoryDisplay(memData, storageData);
+        
+        // Update live indicator
+        updateLastRefresh();
+        
+    } catch (error) {
+        console.error('Error updating memory info:', error);
+    }
+}
+
+function updateMemoryDisplay(memData, storageData) {
+    // Heap memory from meminfo
+    if (memData) {
+        const heapUsed = memData.total_heap - memData.free_heap;
+        const heapUsagePercent = (heapUsed / memData.total_heap * 100).toFixed(1);
+        
+        document.getElementById('free-heap').textContent = formatBytes(memData.free_heap);
+        document.getElementById('used-heap').textContent = formatBytes(heapUsed);
+        document.getElementById('total-heap').textContent = formatBytes(memData.total_heap);
+        document.getElementById('min-free-heap').textContent = formatBytes(memData.largest_free_block);
+        
+        // Update memory bar
+        const heapFill = document.getElementById('heap-fill');
+        const heapPercentage = document.getElementById('heap-percentage');
+        
+        heapFill.style.width = heapUsagePercent + '%';
+        heapPercentage.textContent = heapUsagePercent + '%';
+        
+        // Color coding for memory usage
+        heapFill.className = 'memory-fill';
+        if (heapUsagePercent > 80) {
+            heapFill.classList.add('danger');
+        } else if (heapUsagePercent > 60) {
+            heapFill.classList.add('warning');
+        }
+    }
+    
+    // Flash storage from storageinfo
+    if (storageData && storageData.flash_size) {
+        // Calculate flash usage from partitions
+        let totalPartitionSize = 0;
+        if (storageData.partitions) {
+            storageData.partitions.forEach(partition => {
+                totalPartitionSize += partition.size;
+            });
+        }
+        
+        const flashUsed = totalPartitionSize;
+        const flashFree = storageData.flash_size - flashUsed;
+        const flashUsagePercent = (flashUsed / storageData.flash_size * 100).toFixed(1);
+        
+        document.getElementById('flash-total').textContent = formatBytes(storageData.flash_size);
+        document.getElementById('flash-used').textContent = formatBytes(flashUsed);
+        document.getElementById('flash-free').textContent = formatBytes(flashFree);
+        
+        const flashFill = document.getElementById('flash-fill');
+        const flashPercentage = document.getElementById('flash-percentage');
+        
+        flashFill.style.width = flashUsagePercent + '%';
+        flashPercentage.textContent = flashUsagePercent + '%';
+        
+        flashFill.className = 'storage-fill';
+        if (flashUsagePercent > 80) {
+            flashFill.classList.add('danger');
+        } else if (flashUsagePercent > 60) {
+            flashFill.classList.add('warning');
+        }
+    }
+    
+    // SPIFFS storage from storageinfo
+    if (storageData && storageData.spiffs_total) {
+        const spiffsUsed = storageData.spiffs_used;
+        const spiffsFree = storageData.spiffs_total - storageData.spiffs_used;
+        const spiffsUsagePercent = (spiffsUsed / storageData.spiffs_total * 100).toFixed(1);
+        
+        document.getElementById('spiffs-total').textContent = formatBytes(storageData.spiffs_total);
+        document.getElementById('spiffs-used').textContent = formatBytes(spiffsUsed);
+        document.getElementById('spiffs-free').textContent = formatBytes(spiffsFree);
+        
+        const spiffsFill = document.getElementById('spiffs-fill');
+        const spiffsPercentage = document.getElementById('spiffs-percentage');
+        
+        spiffsFill.style.width = spiffsUsagePercent + '%';
+        spiffsPercentage.textContent = spiffsUsagePercent + '%';
+        
+        spiffsFill.className = 'storage-fill';
+        if (spiffsUsagePercent > 80) {
+            spiffsFill.classList.add('danger');
+        } else if (spiffsUsagePercent > 60) {
+            spiffsFill.classList.add('warning');
+        }
+    } else if (storageData && storageData.spiffs_status === "not_mounted") {
+        // SPIFFS not mounted
+        document.getElementById('spiffs-total').textContent = 'N/A';
+        document.getElementById('spiffs-used').textContent = 'N/A';
+        document.getElementById('spiffs-free').textContent = 'Not mounted';
+        
+        const spiffsFill = document.getElementById('spiffs-fill');
+        const spiffsPercentage = document.getElementById('spiffs-percentage');
+        
+        spiffsFill.style.width = '0%';
+        spiffsPercentage.textContent = 'N/A';
+    }
+}
 
 async function loadWifiStatus() {
     try {
         const response = await fetch('/api/wifi/status');
         const data = await response.json();
+        wifiInfo = data;
         
-        const wifiApStatusDiv = document.getElementById('wifi-ap-status');
-        const wifiStaStatusDiv = document.getElementById('wifi-sta-status');
-
-        // Update WiFi Status
+        // Update AP status
+        const apDot = document.getElementById('ap-dot');
+        const apStatusText = document.getElementById('ap-status-text');
+        const apSsid = document.getElementById('ap-ssid');
+        const apIp = document.getElementById('ap-ip');
+        
         if (data.ap_running) {
-            wifiApStatusDiv.innerHTML = `
-                <div class="connected">
-                    <strong>Access Point running</strong><br>
-                    Network: ${data.ap_ssid}<br>
-                    Password: ${data.ap_password}<br>
-                    ESP32 IP: ${data.ap_ip}
-                </div>
-            `;
-            wifiApStatusDiv.className = 'status-value connected';
+            apDot.className = 'status-dot connected';
+            apStatusText.textContent = 'Running';
+            apSsid.textContent = data.ap_ssid || 'ESP32_AP';
+            apIp.textContent = data.ap_ip || '192.168.4.1';
         } else {
-            wifiApStatusDiv.innerHTML = `
-                <div class="disconnected">
-                    <strong>Access Point not running</strong><br>
-                </div>
-            `;
-            wifiApStatusDiv.className = 'status-value disconnected';
-        } 
-
-        if (data.sta_connected) {
-            wifiStaStatusDiv.innerHTML = `
-                <div class="connected">
-                    <strong>Connected to WiFi</strong><br>
-                    Network: ${data.sta_ssid}<br>
-                    IP Address: ${data.sta_ip}<br>
-                    MAC Address: ${data.sta_mac}<br>
-                    Gateway: ${data.sta_gateway}<br>
-                    DNS: ${data.sta_dns}
-                </div>
-            `;
-            wifiStaStatusDiv.className = 'status-value connected';
+            apDot.className = 'status-dot';
+            apStatusText.textContent = 'Stopped';
+            apSsid.textContent = 'N/A';
+            apIp.textContent = 'N/A';
+        }
+        
+        // Update STA status
+        const staDot = document.getElementById('sta-dot');
+        const staStatusText = document.getElementById('sta-status-text');
+        const staSsid = document.getElementById('sta-ssid');
+        const staIp = document.getElementById('sta-ip');
+        const staSignal = document.getElementById('sta-signal');
+        
+        if (data.sta_connected && data.sta_has_ip) {
+            staDot.className = 'status-dot connected';
+            staStatusText.textContent = 'Connected';
+            staSsid.textContent = data.sta_ssid || 'Unknown';
+            staIp.textContent = data.sta_ip || 'Unknown';
+            staSignal.textContent = 'Connected'; // RSSI not available in status endpoint
+        } else if (data.sta_connected) {
+            staDot.className = 'status-dot warning';
+            staStatusText.textContent = 'Connected (No IP)';
+            staSsid.textContent = data.sta_ssid || 'Unknown';
+            staIp.textContent = 'No IP';
+            staSignal.textContent = 'No Signal';
         } else {
-            wifiStaStatusDiv.innerHTML = `
-                <div class="disconnected">
-                    <strong>Not connected</strong><br>
-                </div>
-            `;
-            wifiStaStatusDiv.className = 'status-value disconnected';
-        } 
-                
+            staDot.className = 'status-dot';
+            staStatusText.textContent = 'Disconnected';
+            staSsid.textContent = 'N/A';
+            staIp.textContent = 'N/A';
+            staSignal.textContent = 'N/A';
+        }
+        
     } catch (error) {
         console.error('Error loading WiFi status:', error);
-        document.getElementById('wifi-status').innerHTML = 'Error loading status';
+        updateErrorState('wifi');
     }
 }
 
 async function loadDeviceInfo() {
     try {
-        // Load device info and WiFi status in parallel
-        const [deviceResponse, wifiResponse] = await Promise.all([
-            fetch('/api/device/info'),
-            fetch('/api/wifi/status')
+        // Load device info and memory info
+        const [deviceResponse, memResponse] = await Promise.all([
+            fetch('/api/device/sysinfo'),
+            fetch('/api/device/meminfo')
         ]);
         
         const deviceData = await deviceResponse.json();
-        const wifiData = await wifiResponse.json();
+        const memData = await memResponse.json();
         
         deviceInfo = deviceData;
         
-        // Update device information display
-        document.getElementById('chip-type').textContent = deviceData.chip || 'Unknown';
-        document.getElementById('cpu-cores').textContent = deviceData.cores || 'Unknown';
-        document.getElementById('flash-size').textContent = deviceData.flash_size || 'Unknown';
-        document.getElementById('free-heap').textContent = `${deviceData.free_heap || 'Unknown'} bytes`;
-        document.getElementById('mac-address').textContent = wifiData.sta_mac || 'Unknown';
+        // Update device model and hardware info
+        document.getElementById('device-model').textContent = deviceData.device_model || 'Unknown';
+        document.getElementById('cpu-cores').textContent = deviceData.chip_info?.cores || 'Unknown';
+        document.getElementById('cpu-freq').textContent = deviceData.cpu_frequency_mhz ? `${deviceData.cpu_frequency_mhz} MHz` : 'Unknown';
+        document.getElementById('chip-revision').textContent = deviceData.chip_info?.revision || 'Unknown';
+        document.getElementById('reset-reason').textContent = formatResetReason(deviceData.reset_reason);
         
-        // Update uptime in both device info and status
-        if (deviceData.uptime) {
-            const uptimeHours = Math.floor(deviceData.uptime / 3600);
-            const uptimeMinutes = Math.floor((deviceData.uptime % 3600) / 60);
-            const uptimeSeconds = deviceData.uptime % 60;
-            const uptimeText = `${uptimeHours}h ${uptimeMinutes}m ${uptimeSeconds}s`;
-            
-            document.getElementById('uptime').textContent = uptimeText;
+        // Features
+        if (deviceData.features && Array.isArray(deviceData.features)) {
+            document.getElementById('chip-features').textContent = deviceData.features.join(', ') || 'None';
         }
+        
+        // Software info
+        document.getElementById('firmware-version').textContent = deviceData.firmware_version || 'Unknown';
+        document.getElementById('sdk-version').textContent = deviceData.sdk_version || 'Unknown';
+        
+        // Git info
+        if (deviceData.git_info) {
+            document.getElementById('git-branch').textContent = deviceData.git_info.branch || 'Unknown';
+            document.getElementById('git-commit').textContent = deviceData.git_info.commit ? deviceData.git_info.commit.substring(0, 8) : 'Unknown';
+            document.getElementById('build-time').textContent = deviceData.git_info.build_timestamp || 'Unknown';
+        }
+        
+        // MAC addresses
+        if (deviceData.mac_addresses) {
+            document.getElementById('mac-wifi-sta').textContent = deviceData.mac_addresses.wifi_sta || 'Unknown';
+            document.getElementById('mac-wifi-ap').textContent = deviceData.mac_addresses.wifi_ap || 'Unknown';
+            document.getElementById('mac-bluetooth').textContent = deviceData.mac_addresses.bluetooth || 'N/A';
+            document.getElementById('mac-base').textContent = deviceData.mac_addresses.base_mac || 'Unknown';
+        }
+        
+        // System performance from memory info
+        if (memData.uptime_seconds) {
+            document.getElementById('uptime').textContent = formatUptime(memData.uptime_seconds);
+        }
+        
+        updateSystemPerformance();
+        
+        // Load partitions and tasks initially
+        await updatePartitionsAndTasks();
         
     } catch (error) {
         console.error('Error loading device info:', error);
-        document.getElementById('chip-type').textContent = 'Error loading';
-        document.getElementById('cpu-cores').textContent = 'Error loading';
-        document.getElementById('flash-size').textContent = 'Error loading';
-        document.getElementById('free-heap').textContent = 'Error loading';
-        document.getElementById('mac-address').textContent = 'Error loading';
+        updateErrorState('device');
     }
 }
 
+function updateSystemPerformance() {
+    // CPU temperature (not available in ESP-IDF v5.5)
+    document.getElementById('cpu-temp').textContent = 'N/A (ESP-IDF v5.5)';
+}
+
+// Update partitions and tasks information
+async function updatePartitionsAndTasks() {
+    try {
+        // Get storage info and memory info in parallel
+        const [storageResponse, memResponse] = await Promise.all([
+            fetch('/api/device/storageinfo'),
+            fetch('/api/device/meminfo')
+        ]);
+        
+        const storageData = await storageResponse.json();
+        const memData = await memResponse.json();
+        
+        updatePartitionsDisplay(storageData);
+        updateTasksDisplay(memData);
+        
+    } catch (error) {
+        console.error('Error updating partitions and tasks:', error);
+    }
+}
+
+function updatePartitionsDisplay(storageData) {
+    // Update summary info
+    document.getElementById('running-partition').textContent = storageData.running_partition || 'Unknown';
+    document.getElementById('flash-mode').textContent = storageData.flash_mode || 'Unknown';
+    document.getElementById('flash-speed').textContent = storageData.flash_speed || 'Unknown';
+    
+    // Update partitions table
+    const partitionsList = document.getElementById('partitions-list');
+    partitionsList.innerHTML = '';
+    
+    if (storageData.partitions && storageData.partitions.length > 0) {
+        storageData.partitions.forEach(partition => {
+            const row = document.createElement('div');
+            row.className = 'table-row';
+            
+            row.innerHTML = `
+                <div class="table-cell partition-name">${partition.label}</div>
+                <div class="table-cell partition-type">${partition.type}</div>
+                <div class="table-cell partition-size">${formatBytes(partition.size)}</div>
+                <div class="table-cell partition-address">0x${partition.address.toString(16).toUpperCase()}</div>
+            `;
+            
+            partitionsList.appendChild(row);
+        });
+    } else {
+        partitionsList.innerHTML = '<div class="loading-row">No partitions found</div>';
+    }
+}
+
+function updateTasksDisplay(memData) {
+    // Update task summary
+    if (memData.num_tasks !== undefined) {
+        document.getElementById('total-tasks').textContent = memData.num_tasks;
+    }
+    
+    // Count tasks by state and update summary
+    let runningCount = 0, blockedCount = 0, readyCount = 0;
+    
+    const tasksList = document.getElementById('tasks-list');
+    tasksList.innerHTML = '';
+    
+    if (memData.tasks && memData.tasks.length > 0) {
+        memData.tasks.forEach(task => {
+            // Count task states
+            switch(task.state) {
+                case 'running': runningCount++; break;
+                case 'blocked': blockedCount++; break;
+                case 'ready': readyCount++; break;
+            }
+            
+            const row = document.createElement('div');
+            row.className = 'table-row';
+            
+            const stackWatermark = task.highwatermark ? `${task.highwatermark} bytes` : 'N/A';
+            
+            row.innerHTML = `
+                <div class="table-cell task-name">${task.name}</div>
+                <div class="table-cell task-state ${task.state}">${task.state}</div>
+                <div class="table-cell task-priority">${task.priority}</div>
+                <div class="table-cell task-stack">${stackWatermark}</div>
+            `;
+            
+            tasksList.appendChild(row);
+        });
+        
+        // Update task state counters
+        document.getElementById('running-tasks').textContent = runningCount;
+        document.getElementById('blocked-tasks').textContent = blockedCount;
+        document.getElementById('ready-tasks').textContent = readyCount;
+        
+    } else {
+        tasksList.innerHTML = '<div class="loading-row">Task info not available (FreeRTOS trace disabled)</div>';
+        document.getElementById('running-tasks').textContent = 'N/A';
+        document.getElementById('blocked-tasks').textContent = 'N/A';
+        document.getElementById('ready-tasks').textContent = 'N/A';
+    }
+}
+
+// Utility functions
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    const size = (bytes / Math.pow(k, i)).toFixed(1);
+    return `${size} ${sizes[i]}`;
+}
+
+function formatUptime(seconds) {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (days > 0) {
+        return `${days}d ${hours}h ${minutes}m`;
+    } else if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+    } else {
+        return `${minutes}m ${seconds % 60}s`;
+    }
+}
+
+function formatResetReason(reason) {
+    const reasonMap = {
+        'power_on': 'Power On',
+        'external_reset': 'External Reset',
+        'software_reset': 'Software Reset',
+        'panic_reset': 'Panic Reset',
+        'interrupt_watchdog': 'Interrupt WDT',
+        'task_watchdog': 'Task WDT',
+        'other_watchdog': 'Watchdog',
+        'deep_sleep': 'Deep Sleep',
+        'brownout': 'Brownout',
+        'sdio_reset': 'SDIO Reset'
+    };
+    return reasonMap[reason] || reason || 'Unknown';
+}
+
+function updateLastRefresh() {
+    document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+}
+
+function updateErrorState(component) {
+    const errorText = 'Connection Error';
+    switch(component) {
+        case 'wifi':
+            document.getElementById('ap-status-text').textContent = errorText;
+            document.getElementById('sta-status-text').textContent = errorText;
+            break;
+        case 'device':
+            document.getElementById('device-model').textContent = errorText;
+            document.getElementById('firmware-version').textContent = errorText;
+            break;
+    }
+}
+
+// Action functions
 async function toggleLed() {
     try {
         const response = await fetch('/api/led/toggle', { method: 'POST' });
         const data = await response.json();
         console.log('LED toggled:', data);
-        alert('LED toggled successfully');
+        
+        // Show success message
+        showNotification('LED toggled successfully', 'success');
     } catch (error) {
         console.error('Error toggling LED:', error);
-        alert('Error toggling LED');
+        showNotification('Error toggling LED', 'error');
     }
 }
 
 async function restartDevice() {
-    if (confirm('Are you sure you want to restart the device?')) {
+    if (confirm('⚠️ Are you sure you want to restart the device? This will interrupt the connection temporarily.')) {
         try {
             await fetch('/api/device/restart', { method: 'POST' });
-            alert('Device restarting...');
+            showNotification('Device restarting... Please wait for reconnection.', 'warning');
+            
+            // Stop intervals during restart
+            clearInterval(memoryUpdateInterval);
+            clearInterval(statusUpdateInterval);
+            
+            // Show reconnection message
+            setTimeout(() => {
+                showNotification('Attempting to reconnect...', 'info');
+                // Try to reinitialize after restart
+                setTimeout(() => {
+                    location.reload();
+                }, 10000);
+            }, 5000);
+            
         } catch (error) {
             console.error('Error restarting device:', error);
-            alert('Error restarting device');
+            showNotification('Error restarting device', 'error');
         }
     }
 }
@@ -133,5 +469,52 @@ async function restartDevice() {
 function refreshStatus() {
     loadWifiStatus();
     loadDeviceInfo();
-    alert('Status refreshed');
+    showNotification('Status refreshed', 'success');
 }
+
+// Simple notification system
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    
+    // Style the notification
+    Object.assign(notification.style, {
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        padding: '15px 20px',
+        borderRadius: '8px',
+        color: 'white',
+        fontWeight: '500',
+        zIndex: '9999',
+        maxWidth: '300px',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+    });
+    
+    // Color based on type
+    const colors = {
+        'success': '#28a745',
+        'error': '#dc3545',
+        'warning': '#ffc107',
+        'info': '#17a2b8'
+    };
+    notification.style.background = colors[type] || colors.info;
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 3000);
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (memoryUpdateInterval) clearInterval(memoryUpdateInterval);
+    if (statusUpdateInterval) clearInterval(statusUpdateInterval);
+});

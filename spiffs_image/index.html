@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP32 Device Manager</title>
+    <title>ESP32 Device Dashboard</title>
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>ESP32 Device Manager</h1>
+            <h1>🚀 ESP32 Device Dashboard</h1>
             <nav>
                 <a href="/" class="nav-link active">Dashboard</a>
                 <a href="/wifi.html" class="nav-link">WiFi Configuration</a>
@@ -17,52 +17,300 @@
         </header>
 
         <main>
-            <div class="card">
-                <h2>System Status</h2>
-                <div class="status-grid">
-                    <div class="status-item">
-                        <h3>WiFi Status (AP-Mode)</h3>
-                        <div id="wifi-ap-status" class="status-value">Loading...</div>
+            <!-- System Status Cards -->
+            <div class="dashboard-grid">
+                <!-- Memory Status Card -->
+                <div class="card memory-card">
+                    <h2>📊 Memory Usage</h2>
+                    <div class="memory-info">
+                        <div class="memory-bar">
+                            <div class="memory-fill" id="heap-fill"></div>
+                            <span class="memory-percentage" id="heap-percentage">0%</span>
+                        </div>
+                        <div class="memory-details">
+                            <div class="memory-item">
+                                <span class="memory-label">Free Heap:</span>
+                                <span id="free-heap" class="memory-value">Loading...</span>
+                            </div>
+                            <div class="memory-item">
+                                <span class="memory-label">Used Heap:</span>
+                                <span id="used-heap" class="memory-value">Loading...</span>
+                            </div>
+                            <div class="memory-item">
+                                <span class="memory-label">Total Heap:</span>
+                                <span id="total-heap" class="memory-value">Loading...</span>
+                            </div>
+                            <div class="memory-item">
+                                <span class="memory-label">Minimum Free:</span>
+                                <span id="min-free-heap" class="memory-value">Loading...</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="status-item">
-                        <h3>WiFi Status (Station Mode)</h3>
-                        <div id="wifi-sta-status" class="status-value">Loading...</div>
+                </div>
+
+                <!-- Storage Information -->
+                <div class="card storage-card">
+                    <h2>💾 Storage Information</h2>
+                    <div class="storage-info">
+                        <div class="storage-section">
+                            <h4>Flash Memory</h4>
+                            <div class="storage-bar">
+                                <div class="storage-fill" id="flash-fill"></div>
+                                <span class="storage-percentage" id="flash-percentage">0%</span>
+                            </div>
+                            <div class="storage-details">
+                                <div class="storage-item">
+                                    <span>Total:</span>
+                                    <span id="flash-total">Loading...</span>
+                                </div>
+                                <div class="storage-item">
+                                    <span>Used:</span>
+                                    <span id="flash-used">Loading...</span>
+                                </div>
+                                <div class="storage-item">
+                                    <span>Free:</span>
+                                    <span id="flash-free">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="storage-section">
+                            <h4>SPIFFS</h4>
+                            <div class="storage-bar">
+                                <div class="storage-fill" id="spiffs-fill"></div>
+                                <span class="storage-percentage" id="spiffs-percentage">0%</span>
+                            </div>
+                            <div class="storage-details">
+                                <div class="storage-item">
+                                    <span>Total:</span>
+                                    <span id="spiffs-total">Loading...</span>
+                                </div>
+                                <div class="storage-item">
+                                    <span>Used:</span>
+                                    <span id="spiffs-used">Loading...</span>
+                                </div>
+                                <div class="storage-item">
+                                    <span>Free:</span>
+                                    <span id="spiffs-free">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WiFi Status -->
+                <div class="card wifi-card">
+                    <h2>📶 WiFi Status</h2>
+                    <div class="wifi-status">
+                        <div class="wifi-section">
+                            <h4>Access Point</h4>
+                            <div class="status-indicator" id="ap-status">
+                                <span class="status-dot" id="ap-dot"></span>
+                                <span id="ap-status-text">Loading...</span>
+                            </div>
+                            <div class="wifi-details">
+                                <div class="wifi-item">
+                                    <span>SSID:</span>
+                                    <span id="ap-ssid">Loading...</span>
+                                </div>
+                                <div class="wifi-item">
+                                    <span>IP:</span>
+                                    <span id="ap-ip">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="wifi-section">
+                            <h4>Station Mode</h4>
+                            <div class="status-indicator" id="sta-status">
+                                <span class="status-dot" id="sta-dot"></span>
+                                <span id="sta-status-text">Loading...</span>
+                            </div>
+                            <div class="wifi-details">
+                                <div class="wifi-item">
+                                    <span>Network:</span>
+                                    <span id="sta-ssid">Loading...</span>
+                                </div>
+                                <div class="wifi-item">
+                                    <span>IP:</span>
+                                    <span id="sta-ip">Loading...</span>
+                                </div>
+                                <div class="wifi-item">
+                                    <span>Signal:</span>
+                                    <span id="sta-signal">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Performance -->
+                <div class="card performance-card">
+                    <h2>⚡ System Performance</h2>
+                    <div class="performance-info">
+                        <div class="performance-item">
+                            <span class="perf-label">CPU Frequency:</span>
+                            <span id="cpu-freq" class="perf-value">Loading...</span>
+                        </div>
+                        <div class="performance-item">
+                            <span class="perf-label">CPU Cores:</span>
+                            <span id="cpu-cores" class="perf-value">Loading...</span>
+                        </div>
+                        <div class="performance-item">
+                            <span class="perf-label">CPU Temperature:</span>
+                            <span id="cpu-temp" class="perf-value">Loading...</span>
+                        </div>
+                        <div class="performance-item">
+                            <span class="perf-label">Uptime:</span>
+                            <span id="uptime" class="perf-value">Loading...</span>
+                        </div>
+                        <div class="performance-item">
+                            <span class="perf-label">Reset Reason:</span>
+                            <span id="reset-reason" class="perf-value">Loading...</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card">
-                <h2>Device Information</h2>
-                <div class="info-grid">
-                    <div class="info-item">
-                        <span class="info-label">Chip Type:</span>
-                        <span id="chip-type" class="info-value">Loading...</span>
+            <!-- Device Information -->
+            <div class="card device-info-card">
+                <h2>🔧 Device Information</h2>
+                <div class="device-info-grid">
+                    <div class="device-section">
+                        <h3>Hardware</h3>
+                        <div class="device-details">
+                            <div class="device-item">
+                                <span>Device Model:</span>
+                                <span id="device-model">Loading...</span>
+                            </div>
+                            <div class="device-item">
+                                <span>Chip Revision:</span>
+                                <span id="chip-revision">Loading...</span>
+                            </div>
+                            <div class="device-item">
+                                <span>Features:</span>
+                                <span id="chip-features">Loading...</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">CPU Cores:</span>
-                        <span id="cpu-cores" class="info-value">Loading...</span>
+                    <div class="device-section">
+                        <h3>Software</h3>
+                        <div class="device-details">
+                            <div class="device-item">
+                                <span>Firmware:</span>
+                                <span id="firmware-version">Loading...</span>
+                            </div>
+                            <div class="device-item">
+                                <span>ESP-IDF:</span>
+                                <span id="sdk-version">Loading...</span>
+                            </div>
+                            <div class="device-item">
+                                <span>Git Branch:</span>
+                                <span id="git-branch">Loading...</span>
+                            </div>
+                            <div class="device-item">
+                                <span>Git Commit:</span>
+                                <span id="git-commit">Loading...</span>
+                            </div>
+                            <div class="device-item">
+                                <span>Build Time:</span>
+                                <span id="build-time">Loading...</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">Flash Size:</span>
-                        <span id="flash-size" class="info-value">Loading...</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Free Heap:</span>
-                        <span id="free-heap" class="info-value">Loading...</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Firmware Version:</span>
-                        <span id="firmware-version" class="info-value">v1.0.0</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">MAC Address:</span>
-                        <span id="mac-address" class="info-value">Loading...</span>
+                    <div class="device-section">
+                        <h3>MAC Addresses</h3>
+                        <div class="device-details">
+                            <div class="device-item">
+                                <span>WiFi STA:</span>
+                                <span id="mac-wifi-sta">Loading...</span>
+                            </div>
+                            <div class="device-item">
+                                <span>WiFi AP:</span>
+                                <span id="mac-wifi-ap">Loading...</span>
+                            </div>
+                            <div class="device-item">
+                                <span>Bluetooth:</span>
+                                <span id="mac-bluetooth">Loading...</span>
+                            </div>
+                            <div class="device-item">
+                                <span>Base MAC:</span>
+                                <span id="mac-base">Loading...</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card">
-                <h2>Quick Actions</h2>
+            <!-- Partition Information -->
+            <div class="card partitions-card">
+                <h2>💽 Flash Partitions</h2>
+                <div class="partitions-info">
+                    <div class="partitions-summary">
+                        <div class="summary-item">
+                            <span>Running Partition:</span>
+                            <span id="running-partition">Loading...</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Flash Mode:</span>
+                            <span id="flash-mode">Loading...</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Flash Speed:</span>
+                            <span id="flash-speed">Loading...</span>
+                        </div>
+                    </div>
+                    <div class="partitions-table">
+                        <div class="table-header">
+                            <div class="header-cell">Partition</div>
+                            <div class="header-cell">Type</div>
+                            <div class="header-cell">Size</div>
+                            <div class="header-cell">Address</div>
+                        </div>
+                        <div id="partitions-list" class="table-content">
+                            <div class="loading-row">Loading partitions...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Information -->
+            <div class="card tasks-card">
+                <h2>⚙️ Running Tasks</h2>
+                <div class="tasks-info">
+                    <div class="tasks-summary">
+                        <div class="summary-item">
+                            <span>Total Tasks:</span>
+                            <span id="total-tasks">Loading...</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Running:</span>
+                            <span id="running-tasks">0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Blocked:</span>
+                            <span id="blocked-tasks">0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Ready:</span>
+                            <span id="ready-tasks">0</span>
+                        </div>
+                    </div>
+                    <div class="tasks-table">
+                        <div class="table-header">
+                            <div class="header-cell">Task Name</div>
+                            <div class="header-cell">State</div>
+                            <div class="header-cell">Priority</div>
+                            <div class="header-cell">Stack Free</div>
+                        </div>
+                        <div id="tasks-list" class="table-content">
+                            <div class="loading-row">Loading tasks...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card actions-card">
+                <h2>🔧 Quick Actions</h2>
                 <div class="action-buttons">
                     <button class="btn btn-primary" onclick="refreshStatus()">
                         <span class="btn-icon">🔄</span>
@@ -85,7 +333,8 @@
         </main>
 
         <footer>
-            <p>&copy; 2025 ESP32 Device Manager | Last updated: <span id="last-updated">Never</span></p>
+            <p>&copy; 2025 ESP32 Device Dashboard | Last updated: <span id="last-updated">Never</span> | 
+            Auto-refresh: <span id="auto-refresh-status">Enabled</span></p>
         </footer>
     </div>
 

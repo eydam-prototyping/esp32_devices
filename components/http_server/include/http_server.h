@@ -25,7 +25,11 @@ char *get_wifi_config_ap(httpd_req_t *req);
 char *post_wifi_config_ap(httpd_req_t *req);
 char *get_wifi_config_sta(httpd_req_t *req);
 char *post_wifi_config_sta(httpd_req_t *req);
+
 char *get_device_info(httpd_req_t *req);
+
+char *get_device_memory_info(httpd_req_t *req);
+char *get_device_storage_info(httpd_req_t *req);
 
 esp_err_t spiffs_init(void);
 bool spiffs_file_exists(const char *filepath);

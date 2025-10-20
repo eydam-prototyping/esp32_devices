@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "http_api_device_info.c" "http_api_wifi_scan.c" "http_api_wifi_status.c" "http_api_wifi_config.c" "http_api.c" "http_handlers.c" "http_server.c" "spiffs.c"
+    SRCS "http_api_get_mem_info.c" "http_api_get_storage_info.c" "http_api_device_info.c" "http_api_wifi_scan.c" "http_api_wifi_status.c" "http_api_wifi_config.c" "http_api.c" "http_handlers.c" "http_server.c" "spiffs.c"
     INCLUDE_DIRS "include"
     REQUIRES esp_http_server network_manager spiffs nvs_flash json esp_timer esp_system esp_hw_support esp_driver_gpio
     PRIV_REQUIRES vfs spi_flash app_update driver

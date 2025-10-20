@@ -15,10 +15,10 @@ Headers:
     * `Content-Type: application/json`
 
 Body:
-```json
+```python
 {
   "ap_running": true,
-  "ap_ssid": "<AP-SSID>",               // only if AP is running
+  "ap_ssid": "<AP-SSID>",               # only if AP is running
   "ap_password": "<AP-Password>",       // only if AP is running
   "ap_ip": "<ESP32_IP>",                // only if AP is running
   "ap_netmask": "<Netmask>",            // only if AP is running

@@ -12,6 +12,8 @@
   },
   "idf.flashType": "UART",
   "files.associations": {
-    "esp_http_server.h": "c"
+    "esp_http_server.h": "c",
+    "freertosconfig.h": "c",
+    "cstdlib": "c"
   }
 }
